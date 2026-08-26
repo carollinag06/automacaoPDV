@@ -1,0 +1,204 @@
+ID|Secao|Nome|PreCondicao|Acoes|ResultadoEsperado|Automatizavel|Dependencias
+INI-01|Testes iniciais|Abrir PDV com senha vazia|PDV fechado|Abrir e deixar senha em branco|Dialoga informa matrícula ou senha inválidos|PARCIAL|Login real
+INI-02|Testes iniciais|Pausa do caixa|PDV aberto|Alt+P|O caixa fica em pausa|SIM|Nenhuma
+INI-03|Testes iniciais|Abrir ajuda|PDV aberto|Ctrl+F1|Tela de ajuda apresenta comandos|SIM|Nenhuma
+INI-04|Testes iniciais|Sair da ajuda|Ajuda aberta|Esc|Sai do menu de ajuda|SIM|Nenhuma
+INI-05|Testes iniciais|Esc com venda aberta|Produto 5 inserido|Esc|Mensagem orienta F3 para finalizar ou F6 para cancelar|SIM|Banco
+INI-06|Testes iniciais|Esc após finalizar/cancelar|Fluxo anterior concluído|Finalizar ou cancelar e pressionar Esc|PDV é finalizado|SIM|Banco
+INI-07|Testes iniciais|Abrir gaveta|Impressora não fiscal configurada|F9 com usuário autorizado|Gaveta abre|MANUAL|Impressora/gaveta
+INI-08|Testes iniciais|Consulta de preço|PDV aberto|F1 e produto 4|Produto mostra descrição e preço|SIM|Banco
+INI-09|Testes iniciais|Estoque em consulta|Consulta de preço aberta|Ctrl+E|Estoque do produto aparece|SIM|Banco
+INI-10|Testes iniciais|Inserir produto|Modo venda|Produto válido e Enter|Produto aparece no grid/memo|SIM|Banco
+INI-11|Testes iniciais|Remover item|Produtos 1 e 2 inseridos|-2|Item 2 é removido|SIM|Banco
+INI-12|Testes iniciais|Remover quantidade|Produto 1 com quantidade 2|-1*1|Uma unidade é removida|SIM|Banco
+INI-13|Testes iniciais|Remover por índice|Produtos 3 e 5 com quantidades 3 e 4|-1* e -2|Uma unidade do item 2 é removida e total fica R$ 6,00|SIM|Banco
+INI-14|Testes iniciais|Remover item inexistente|Item 1 inserido|-5|Mensagem item inexistente ou já cancelado anteriormente|SIM|Banco
+INI-15|Testes iniciais|Produto inexistente|PDV aberto|Informar 1234 e código de barras inexistente|Dialog produto não encontrado|SIM|Banco
+INI-16|Testes iniciais|Verificação de licença|CNPJ incompatível|Tentar abrir pelo SAT e atalho|PDV não abre|BLOCKED|Banco/licença
+VEN-01|Venda|SiTEF com CPF no PinPad|SiTEF e NFC-e/ACBr ativos|F4; documento no PinPad; produtos 2 e 3; F3; Enter|Cupom finaliza com documento impresso|MANUAL|SiTEF/PinPad/impressora
+VEN-02|Venda|SiTEF CNPJ no PinPad|SiTEF e NFC-e/ACBr ativos|Ctrl+F5; documento no PinPad; produtos 3 e 4; F3; Enter|Cupom finaliza com documento impresso|MANUAL|SiTEF/PinPad/impressora
+VEN-03|Venda|CPF pelo teclado|PDV aberto|F5; CPF; produtos 5 e 6; F3; Enter|Cupom finaliza e cliente mantém cadastro|PARCIAL|Banco/impressora
+VEN-04|Venda|Finalização fiscal com descrição extensa|Produto 21 disponível|Inserir 21; F3; pagamento|Fecha venda e exibe troco sem erro de descrição|PARCIAL|Banco/NFC-e/impressora
+VEN-05|Venda|Finalização de venda zerada|Produto 45 disponível|Inserir 45; F3|Emite conforme configuração e exibe troco|PARCIAL|Banco/NFC-e
+VEN-06|Venda|Finalização não fiscal|Produto 21 disponível|F2; pagamento|Fecha sem NFC-e e exibe troco|PARCIAL|Banco/impressora
+VEN-07|Venda|F2 vazio|Sem itens|F2|Nenhum pedido zerado é criado|SIM|Banco
+VEN-08|Venda|F3 vazio|Sem itens|F3|Nenhum pedido zerado é criado|SIM|Banco
+VEN-09|Venda|Duas formas de pagamento|Produto válido|F3; pagar parte; segunda forma; Enter|Registra ambas e imprime documento|PARCIAL|Banco/NFC-e
+VEN-10|Venda|Forma Outros|Produto válido|F3; Outros; data; Enter|Emite NFC-e ou cupom|PARCIAL|Banco/NFC-e
+VEN-11|Venda|Geração de voucher|Cliente 53960629168|CPF; -2*1; Vale Troca/Voucher|Gera voucher com código de barras e valor R$ 2,00|PARCIAL|Banco/impressora
+VEN-12|Venda|Utilização de voucher|Voucher válido|Cliente; produto 1; voucher; finalizar|Abate voucher e finaliza|PARCIAL|Banco
+VEN-13|Venda|Voucher maior|Voucher maior que venda|Gerar voucher de R$ 5|00 e pagar produto 1,Sem troco; voucher integral; NFC-e normal|PARCIAL|Banco/NFC-e
+VEN-14|Venda|Voucher já usado|Voucher consumido|Informar código usado|Mensagem de voucher inválido e campo limpo|SIM|Banco
+VEN-15|Venda|Voucher menor|Valor da venda maior que voucher|Gerar e usar voucher menor|O cenário documenta comportamento de finalização integral; preservar evidência|PARCIAL|Banco
+VEN-16|Venda|Débito à vista|Cartão com chip|Transação de R$ 910|00,Transação confirmada|MANUAL|TEF/web
+VEN-17|Venda|Máximo de cartões|Limite informado pelo desenvolvedor|Venda R$ 700–799 com limite de cartões|Consegue realizar venda|BLOCKED|TEF/parâmetro
+VEN-18|Venda|50 itens|Produtos válidos|Inserir 50 itens|Venda é realizada|PARCIAL|Banco
+VEN-19|Venda|Alto valor|Produto 12/balança|Quantidade 99999999 e venda de R$ 99.999.999|Consegue realizar venda|MANUAL|Balança/banco
+VEN-20|Venda|Parcelamento configurado|Parâmetros financeiros|Ctrl+F12|Valores parcelados aparecem|PARCIAL|Banco/parâmetros
+VEN-21|Venda|Parcelamento acima de 100|Pagamento parcelável|Informar mais de 100 parcelas|Operação não é permitida|SIM|Pagamento
+VEN-22|Venda|Parcelamento inicial|Produto 36|Ctrl+F12; F12|Primeiro grid mostra parcelas 7 e 8 e F12 mostra demais|PARCIAL|Banco/parâmetros
+VEN-23|Venda|Figuras fiscais|Figuras A/B/C configuradas|Venda e devolução DF/GO/MG|CFOP de venda/devolução correto|BLOCKED|Banco/cadastro fiscal
+VEN-24|Venda|Recibo em Outros|Checkbox de recibo ativo|Venda com Outros|Imprime venda e recibo|MANUAL|Impressora
+VEN-25|Venda|Quantidade preservada|Itens na venda|Inserir 3*1 e fechar/reabrir|Quantidade permanece|SIM|Banco/reinício
+VEN-26|Venda|Código de barras XML|NFC-e habilitada|Inserir 7894900011531 e emitir|Código aparece no XML|PARCIAL|NFC-e/XML
+VEN-27|Venda|Código automático|Produto configurado|Inserir 0000000000024|Produto entra no grid|SIM|Banco
+VEN-28|Venda|Item de balança|Produto 25 configurado|Inserir produto|Permite informar peso|MANUAL|Balança/VSPE
+VEN-29|Venda|Peso manual|Produto 12 configurado|Inserir; informar peso; confirmar|Quantidade digitada é inserida|PARCIAL|Balança/parâmetro
+VEN-30|Venda|Cancelar peso|Produto 12 configurado|Iniciar peso e cancelar|Mensagem de operação cancelada|MANUAL|Balança
+VEN-31|Venda|NCM inválido|Produto sem figura fiscal|Inserir e emitir|Finaliza em contingência sem aviso indevido|PARCIAL|NFC-e/certificado
+VEN-32|Venda|CSOSN|Configuração fiscal existente|Consultar lojas/figura/produto|Precedência conforme roteiro|BLOCKED|Banco
+VEN-33|Venda|Convênio acima do limite|Cliente 59192828000|Venda acima de R$ 100 no convênio|Mensagem de limite e permite nova forma|PARCIAL|Banco/cadastro
+VEN-34|Venda|Quantidade fracionada|Produto 46|Informar 0|12345*,Armazena no máximo 3 casas: 0,123|SIM|Banco
+VEN-35|Venda|Convênio pré-selecionado|Produto 2|F3 e selecionar Convênio|Convênio pré-selecionado e navegação sem bloqueio|SIM|Banco
+VEN-36|Venda|Cancelar CPF de convênio|Sem convênio cadastrado|Convênio; Enter; Esc; F3 novamente|Retorna ao fluxo sem erro|SIM|Banco
+VEN-37|Venda|Pesquisa por descrição|Busca disponível|Termo parcial contendo teste|Lista descrições que contêm o termo|SIM|Banco
+VEN-38|Venda|Pagamento acima do limite|Pedido extremamente alto|Pagamento acima de 999999999999|Mensagem de limite permitido|SIM|Banco
+FRT-01|Fretes|Cadastrar frete|Parâmetros acessíveis|Frete1; ordem 1; R$ 15|00,Frete cadastrado|BLOCKED|Banco/cadastro
+FRT-02|Fretes|Venda com frete|Frete cadastrado|Item 31; frete; salvar orçamento; carregar|Itens e frete permanecem|BLOCKED|Banco/orçamento
+CLI-01|Clientes|CPF/CNPJ novo|Cadastro/PDV aberto|Informar CPF/CNPJ e Enter|Campo é mantido|SIM|Banco
+CLI-02|Clientes|CPF inválido|PDV aberto|Informar CPF inválido|Mensagem de CPF inválido|SIM|Banco
+CLI-03|Clientes|CEP com internet|Internet disponível|F5; CEP|Endereço é preenchido|PARCIAL|Webservice CEP
+CLI-04|Clientes|CEP sem internet|Internet indisponível|F5; CEP|Sem erro na tela; log e endereço vazio se serviço falhar|PARCIAL|Webservice/log
+CLI-05|Clientes|Cliente não cadastrado|CPF novo|F5; vender; Shift+F7; outro cliente|Oferece Sim/Não e preserva cliente correto|PARCIAL|Banco
+CLI-06|Clientes|Consultar saldo sem cliente|Sem cliente|Ctrl+C; não identificar|Sai da função|SIM|Banco
+CLI-07|Clientes|Cancelar saldo|Consulta aberta|Ctrl+C; Esc|Fecha sem consultar saldo|SIM|Banco
+CLI-08|Clientes|Limite de crédito|Cliente 53960629168|Venda em Limite crédito|Subtrai limite ou pede senha do gerente|PARCIAL|Banco/permissão
+CLI-09|Clientes|CPF salvo|Cadastro de cliente|Salvar 70893440108 e reabrir|CPF permanece|SIM|Banco
+DES-01|Descontos|Desconto em valor|Produtos 1 e 2|Quantidades 5; F12 R$ 1|00,Desconto de R$ 1,00|SIM|Banco
+DES-02|Descontos|Desconto após quantidade|Produtos 1 e 2|Adicionar 5 unidades ao item 1|Desconto de R$ 1,00 permanece|SIM|Banco
+DES-03|Descontos|Alterar desconto para percentual|Produtos 1 e 2|Adicionar 5 ao item 2; F11 10%|Desconto muda para R$ 2,00|SIM|Banco
+DES-04|Descontos|Total R$ 28|00|Fluxo de desconto anterior|Finalizar F3,Desconto R$ 2,00 e total R$ 28,00|SIM|Banco/NFC-e
+DES-05|Descontos|Desconto em quantidade alta|Produto 1|Quantidade 10000; F11 10%|Desconto R$ 1.002,80|PARCIAL|Banco
+DES-06|Descontos|Desconto após desconto|Produto 1|50% e depois R$ 0|60,Dialog pede autorização de 60%|SIM|Banco/permissão
+DES-07|Descontos|Desconto em venda negativa|Produto 1 com -1*|F12 -R$ 0|10,Total R$ -0,90|SIM|Banco
+DES-08|Descontos|Percentual em venda negativa|Fluxo DES-07|F11 20%|Total R$ -0,80|SIM|Banco
+DES-09|Descontos|Preço mínimo|Produto 37|50% e R$ 3|00,Total não passa de R$ 5,00|SIM|Banco
+DES-10|Descontos|Desconto máximo|Produto 38|F11 20% e F12 R$ 2|50,Aplica só R$ 0,50 e total R$ 4,50|SIM|Banco
+DES-11|Descontos|Usuário sem permissão|Usuário 0001|Desconto 15% e R$ 0|50,Pede autorização e informa usuário sem acesso|SIM|Permissão/banco
+DES-12|Descontos|Usuário autorizado|Usuário 0001 e autorizador 1236|Loja com máximo 10%; desconto 15%|Autoriza após credencial correta|PARCIAL|Permissão/banco
+DES-13|Descontos|Cupom em valor|Produto 1 com 10*|Alt+C teste10|Aplica R$ 5,00|SIM|Banco/cupom
+DES-14|Descontos|Cupom percentual|Produto 1 com 10*|Alt+C teste11|Aplica 10%|SIM|Banco/cupom
+DES-15|Descontos|Sobreposição de cupons|Produto 33|Aplicar teste10 e teste11|Apenas maior desconto fica aplicado|SIM|Banco/cupom
+DES-16|Descontos|Desconto e acréscimo|Produto 1|F11 20%; Shift+F11 100%|Remove desconto; acréscimo R$ 1,00; total R$ 2,00|SIM|Banco
+DES-17|Descontos|Arredondamento|Produto 43|F11 10%|Total R$ 9,00 e desconto R$ 0,99|SIM|Banco
+DES-18|Descontos|Recalcular após exclusão|Produto 33 e 17|F12 R$ 300; três itens 17; -4|Desconto recalculado em R$ 300,50|PARCIAL|Banco
+DES-19|Descontos|Limpar cupom entre vendas|Venda com teste10|Finalizar; nova venda; Alt+C|Campo de cupom vem limpo|SIM|Banco
+DES-20|Descontos|Desconto máximo zerado|Produto 47|F11 50%|Não permite desconto|SIM|Banco
+DES-21|Descontos|Rateio com item sem desconto|Produtos 1|2|47,F11 10%,Desconto só considera 1 e 2; 47 sem desconto|SIM|Banco
+PRD-01|Produtos|Tabela de tamanhos e cores|Parâmetro habilitado|Inserir produto configurado|Abre tabela com data de validade|PARCIAL|Cadastro/banco
+PRD-02|Produtos|Unidade no XML|Unidade alterada|Emitir NFC-e|Unidade sai na NFC-e|PARCIAL|NFC-e/XML
+PRD-03|Produtos|Observações do pedido|Itens 1 e 2|Ctrl+F9; digitar observação|Observação aparece na tela de pedidos|PARCIAL|Banco
+PRE-01|Preços|Tabela padrão|Loja tabela 3|Inserir produto 1|Preço R$ 1,25|SIM|Banco/parâmetro
+PRE-02|Preços|Tabela por valor|Parâmetro acima de R$ 100|Produto 1 com 100*|Tabela 2 e preço R$ 1,25|SIM|Banco/parâmetro
+PRE-03|Preços|Produto preço zero bloqueado|Parâmetro desmarcado|Inserir produto 45|Mensagem produto sem preço de venda|SIM|Banco/parâmetro
+PRE-04|Preços|Produto preço zero permitido|Parâmetro marcado|Inserir produto 45|Permite valor zero|SIM|Banco/parâmetro
+PRE-05|Preços|Alterar tabela com zero bloqueado|Parâmetro desmarcado|Produto 40; Shift+F4 tabela 2|Permanece preço 1|SIM|Banco
+PRE-06|Preços|Alterar tabela com zero permitido|Parâmetro marcado|Produto 40; Shift+F4 tabela 2|Altera tabela mesmo com preço zero|SIM|Banco
+PRE-07|Preços|Preço diferenciado e tabela|Produto 17 com 3*|Shift+F4 tabela 3|Limpa desconto e total vira R$ 3,00|SIM|Banco
+PRE-08|Preços|Preço não encontrado|Produto 1 e 45|Alternar tabelas 2 e 4|Item 1 fica R$ 1,50 e item 45 conserva/assume preço conforme parâmetro|SIM|Banco
+PRE-09|Preços|Evitar duplicidade de valor|Produto 30 ou 17|Alternar tabela 1 para 3 e para 1|Valor não duplica|SIM|Banco
+PRE-10|Preços|Excluir sem gerar desconto|Fluxo PRE-09|Excluir item|Remove item sem saldo positivo|SIM|Banco
+GEST-01|Gestão de preços|Tabela 2/3/4 produto 33|Gestões válidas|Shift+F4 2|3,4,Totais R$ 2.050,00/R$ 3.750,00/R$ 4.500,00|SIM|Banco
+GEST-02|Gestão de preços|Produto sem tabela|Produtos 1 e 3|Shift+F4 tabela 2|Produto 1 muda e 3 permanece padrão|SIM|Banco
+GEST-03|Gestão de preços|Promoção sem preço de venda|Produto 45 com quantidade 2*|Inserir|Desconto R$ 1,00 e total R$ 1,00|SIM|Banco
+GEST-04|Gestão de preços|Trocar tabela e descontar|Produto 33 com 5*|Tabela 2; F11 7%|Desconto R$ 717,50 e venda R$ 9.532,50|SIM|Banco
+GEST-05|Gestão de preços|Limpar desconto ao trocar tabela|Produto 1|Alterar tabela; F12; voltar tabela|Desconto limpa|SIM|Banco
+GEST-06|Gestão de preços|Preço diferenciado cadastrado|Produto 3|Preço promocional R$ 0|50 quantidade 2; inserir 2*,Aplica R$ 0,50 por item sem alterar unitário|PARCIAL|Banco/cadastro
+ORC-01|Orçamento|Consultar orçamento|Orçamento salvo|Ctrl+O|Lista orçamentos abertos do dia sem não salvos|SIM|Banco
+ORC-02|Orçamento|Carregar orçamento|Orçamento selecionado|Selecionar e F10|Todos itens vão para o PDV|SIM|Banco
+ORC-03|Orçamento|Carregar por o+n|Orçamento salvo|Digitar o e número|Itens carregam prontos para finalizar|SIM|Banco
+ORC-04|Orçamento|Salvar como orçamento|Itens na venda|Ctrl+F4|Mensagem Pedido salvo como orçamento e registro correto|SIM|Banco
+ORC-05|Orçamento|Cancelar tela|Consulta aberta|Esc|Tela fecha|SIM|Banco
+ORC-06|Orçamento|Atualizar lista|Consulta aberta|Ctrl+O e salvar outro orçamento|Lista atualiza|SIM|Banco
+ORC-07|Orçamento|Excluir orçamento|Orçamento selecionado|F6|Exclui se usuário tiver permissão|PARCIAL|Banco/permissão
+ORC-08|Orçamento|Vendedor no orçamento|Parâmetro solicitar vendedor ativo|Produto; vendedor 1; Ctrl+F4; consultar|Vendedor permanece|PARCIAL|Banco/parâmetro
+ORC-09|Orçamento|Peso no orçamento|Parâmetro balança manual|Produto 12; peso; Ctrl+F4; o+n|Peso permanece|PARCIAL|Balança/banco
+ORC-10|Orçamento|Inserir itens no pedido aberto|Orçamento e itens abertos|Ctrl+O; confirmar ou rejeitar|Confirma insere; rejeita fecha sem inserir|SIM|Banco
+ORC-11|Orçamento|Não salvar orçamento vazio|Sem itens|F11/F12; consultar pedidos|Nenhum orçamento criado|SIM|Banco
+ORC-12|Orçamento|Usuário sem acesso|Usuário 0001|Produto 1; Ctrl+F4; autorizar com 0002|Pede autorização e permite salvar com autorizador|BLOCKED|Permissão/banco
+CAN-01|Cancelamento|Cancelar pagamento integrado|TEF/Pix/Moovpay iniciado|Fechar pagamentos; F6; confirmar|Cancela integração antes da venda|MANUAL|TEF/Pix/Moovpay
+CAN-02|Cancelamento|Cancelar item na venda|Produtos 2 e 36|-2; F3; pagamento|Item cancelado aparece negativo no documento|PARCIAL|Banco/impressora
+CAN-03|Cancelamento|Cancelar último item|Produtos 1|2|3; depois 4,5,6,-3; finalizar,Pedidos refletem itens/documento|SIM|Banco
+CAN-04|Cancelamento|Cancelar item com desconto|Itens 1|2|3; desconto R$ 0,50; mais item,Cancelar último item,Desconto permanece até o ponto anterior|SIM|Banco
+CAN-05|Cancelamento|Recuperar após fechar processo|Venda aberta|Encerrar processo e abrir novamente|Itens da venda anterior retornam|PARCIAL|Gerenciador/banco
+CAN-06|Cancelamento|Cancelar venda aberta|Itens 36 e 37|F6; motivo válido|Pedido/documento fica cancelado conforme configuração|SIM|Banco/NFC-e
+CAN-07|Cancelamento|Cancelar última venda|Última venda finalizada|Ctrl+F6|Cancela venda/documento e TEF quando aplicável|MANUAL|Banco/TEF
+CAN-08|Cancelamento|Campo excluir sem item|Modo totem|Excluir produto; digitar mais de um número|Mensagem Não há item a ser cancelado|SIM|Nenhuma
+FIS-01|Fiscal|NFC-e contingência com motivo|Erro controlado de emissão|Emitir em contingência|Motivo registrado e visível na consulta|BLOCKED|SEFAZ/certificado
+FIS-02|Fiscal|NFC-e dados incompletos|Cliente só com CPF/CNPJ|Emitir|Valida e envia somente com CPF/CNPJ|BLOCKED|NFC-e/banco
+FIS-03|Fiscal|NFC-e sem internet|Internet interrompida por 1|5 s|Emitir,NFC-e emitida normalmente ou contingência conforme cenário|MANUAL|Internet/SEFAZ
+FIS-04|Fiscal|Descrição fiscal NFC-e|Forma configurada|Emitir NFC-e|Descrição escolhida sai na nota|BLOCKED|NFC-e/parâmetro
+FIS-05|Fiscal|Spooler NFC-e|Impressora padrão configurada|Emitir NFC-e|Envia direto sem preview|MANUAL|Spooler/impressora
+FIS-06|Fiscal|Duplicidade de chave|Número NFC-e manipulado|Emitir e escolher Não/Sim|Fluxos não/sim preservam resultados do roteiro|BLOCKED|Banco/SEFAZ
+FIS-07|Fiscal|NFC-e rejeitada|Ambiente de rejeição|Emitir e consultar chave|Nota não consta autorizada na SEFAZ|BLOCKED|SEFAZ
+FIS-08|Fiscal|XML PIS/COFINS|Configuração fiscal|Emitir NFC-e e NF-e|Tags fiscais preenchidas|BLOCKED|NFC-e/NF-e/XML
+FIS-09|Fiscal|Relatório de entrega|Venda concluída|Shift+F7; CPF; F10; opção 0–4; F4|Emite NF-e conforme seleção|BLOCKED|NF-e/certificado
+FIS-10|Fiscal|Serie da loja|Loja com série|Shift+F7|A série da loja vem como padrão|SIM|Banco
+FIS-11|Fiscal|NF-e de devolução|Produto 1 e devolução -1*1|F3; Outros/Devolução; Shift+F7; F4|Emite NF-e de devolução sem campos fiscais indevidos|BLOCKED|NF-e/certificado
+FIS-12|Fiscal|Pasta Documentos Fiscais|Caminho DANFE não configurado|Emitir nota|XML é salvo na pasta da aplicação/Documentos Fiscais|BLOCKED|NFC-e/filesystem
+TEF-01|TEF|Duas formas TEF/Pix|TEF e Pix ativos|Produto 3; F3; primeira; fechar; segunda Pix|Pagamento anterior permanece aberto|MANUAL|TEF/Pix
+TEF-02|TEF|Cartão TEF|TEF configurado|F3; Cartão; Enter|Gerenciador abre e venda finaliza com comprovantes|MANUAL|TEF/impressora
+TEF-03|TEF|TEF sem impressora|Transação aprovada|Desligar impressora antes dos comprovantes|Transação permanece aprovada|MANUAL|TEF/impressora
+TEF-04|TEF|Cancelar SiTEF|Gerenciador aberto|Cancelar em inserir cartão/senha|Volta à escolha de pagamento|MANUAL|SiTEF
+TEF-05|TEF|Tags TEF no XML|TEF integrado|Emitir NFC-e TEF|XML contém tPag/tpIntegra/CNPJ/cAut|MANUAL|TEF/NFC-e/XML
+TEF-06|TEF|Auttar crédito|Auttar configurado|Inicializar; venda R$ 900|Status confirmado na ferramenta web|MANUAL|Auttar/web
+TEF-07|TEF|Auttar cancelamento|Auttar transação anterior|Cancelar com data/NSU/valor|Cancelamento confirmado e original cancelada|MANUAL|Auttar/web
+TEF-08|TEF|TEF administrativo|TEF configurado|Ctrl+F10|Abre administradora e imprime conforme configuração|MANUAL|TEF/impressora
+TEF-09|TEF|Pix Inter|Pix Inter configurado|Venda com Pix|Pix funciona corretamente|MANUAL|Pix/internet/certificados
+TEF-10|TEF|Caracteres em parcela|Pagamento cartão/TEF|Informar letra/símbolo no campo|Permite somente números|SIM|Tela de pagamento
+REP-01|Reimpressão|Último fiscal dinheiro|Último fiscal existente|F7; confirmar; CPF|Reimprime sem criar venda|PARCIAL|Impressora/banco
+REP-02|Reimpressão|Pedido não fiscal|Pedido existente|Ctrl+F7|Imprime relatório não fiscal|MANUAL|Impressora
+REP-03|Reimpressão|Pedido com dizima|Produto 12; peso 0|15; desconto 0|14,Ctrl+F7; F7; Ctrl+F6,Consulta total R$ 0,01 sem mais de 2 casas|BLOCKED|Balança/banco/impressora
+REP-04|Reimpressão|Fechamento repetido|Caixa fechado|Ctrl+F8 novamente|Pede autorização de reimpressão|PARCIAL|Impressora/permissão
+REP-05|Reimpressão|Último fiscal TEF|Último fiscal TEF|Ctrl+F7|Reimprime fiscal sem chamar TEF|MANUAL|TEF/impressora
+REP-06|Reimpressão|Excluir orçamento da lista|Orçamento salvo|F7|Orçamentos não são listados|SIM|Banco
+REP-07|Reimpressão|Documento de devolução|Venda negativa|Inserir negativo; F3; F7|Lista e mensagem orientam Shift+F7 para NF-e|BLOCKED|Banco/NFC-e
+CER-01|Certificado|Certificado vencido na inicialização|Certificado vencido|Abrir PDV|Mensagem de vencido e finalização|BLOCKED|Certificado
+CER-02|Certificado|Certificado válido|Certificado ativo|Emitir nota|Nota emitida|BLOCKED|Certificado/NFC-e
+CER-03|Certificado|Sem certificado|Certificado ausente|Abrir PDV|PDV não abre|BLOCKED|Certificado
+CER-04|Certificado|Certificado vencido e contingência|Certificado vencido depois válido|Emitir e autorizar Sincronia|Emite contingência e autoriza depois|BLOCKED|Certificado/Sincronia
+BAL-01|Balança|Comunicação balança|Produto marcado|Inserir item|Informa se comunica|BLOCKED|Balança/VSPE
+BAL-02|Balança|Peso manual sem comunicação|Parâmetro ativo|Inserir item e informar peso|Abre janela de peso|PARCIAL|Balança/parâmetro
+BAL-03|Balança|Tentar comunicação novamente|Balança sem resposta|Inserir item; Sim/Não|Sim tenta novamente; Não cancela|BLOCKED|Balança
+MFI-01|Menu fiscal|Abrir menu fiscal|PDV aberto|F8|Menu fiscal abre|SIM|Nenhuma
+MFI-02|Menu fiscal|Suprimento sem itens|PDV sem venda|Ctrl+F2; valor positivo|Imprime comprovante não fiscal|MANUAL|Impressora
+MFI-03|Menu fiscal|Suprimento negativo|PDV sem venda|Ctrl+F2; valor negativo|Não permite valor negativo|SIM|Menu fiscal
+MFI-04|Menu fiscal|Suprimento com itens|Venda aberta|Ctrl+F2|Dialog abre e mantém itens|SIM|Banco
+MFI-05|Menu fiscal|Sangria|PDV sem venda|Ctrl+F3; valor positivo|Imprime comprovante|SIM|Impressora
+MFI-06|Menu fiscal|Sangria negativa|PDV sem venda|Ctrl+F3; valor negativo|Não permite valor negativo|SIM|Menu fiscal
+MFI-07|Menu fiscal|Fechamento|PDV aberto|Ctrl+F8|Imprime relatório e mantém tela aberta|MANUAL|Impressora
+MES-01|Mesas|Fechar mesa|Mesa M+n cadastrada|Pedido na mesa; F3|Fecha mesa após cupom|PARCIAL|Banco/impressora
+FUN-01|Vendedores|Vendedor válido automático|Parâmetro solicitar vendedor|Inserir produto 1; vendedor 1|Insere vendedor/produto sem mudar caixa|PARCIAL|Banco/parâmetro
+FUN-02|Vendedores|Vendedor via F10|Parâmetro desligado|F10; vendedor 1|Insere vendedor e imprime nome|PARCIAL|Banco/impressora
+FUN-03|Vendedores|Vendedor inexistente|Parâmetro desligado|F10; vendedor 2|Mensagem de vendedor não cadastrado na loja|SIM|Banco
+FUN-04|Vendedores|Vendedor desligado|Parâmetro ativo|F10; vendedor 7|Mensagem de vendedor fora da empresa e pede novamente|SIM|Banco
+FUN-05|Vendedores|Cancelar sem vendedor|F10; nenhum|Esc ou Cancelar|Mensagem vendedor não foi selecionado e continua|SIM|Banco
+FUN-06|Vendedores|Manter vendedor|F10; vendedor válido; F10 novamente|Esc|Fecha e mantém vendedor anterior|SIM|Banco
+FUN-07|Vendedores|Confirmar sem vendedor|F10 vazio|Enter|Mensagem Vendedor: Nenhum|SIM|Nenhuma
+FUN-08|Vendedores|Funcionário de outra loja|Funcionário cadastrado noutra loja|F10; código|Mensagem não cadastrado na loja atual|SIM|Banco
+FUN-09|Vendedores|Funcionário não vendedor|Funcionário ajudante|F10; código 3|Mensagem Funcionário não cadastrado como Vendedor|SIM|Banco
+FUN-10|Vendedores|Vendedor de todos os itens|Parâmetro beta|Itens 1/2; Shift+F10 vendedor 1; itens 3/4|Todos ficam com vendedor 1|SIM|Banco
+FUN-11|Vendedores|Sobrescrever todos|Vendedores 1 e 6|Shift+F10 6|Todos atualizados para 6|SIM|Banco
+FUN-12|Vendedores|Vendedores próximos e todos|Parâmetro beta|Item 1; Shift+F10 1; item 2; F10 6; item 3|Itens preservam regras por item/todos|SIM|Banco
+REI-01|Reinício|Recuperar TEF/pagamento|Venda com pagamento iniciado|Reiniciar e inserir item 3|Itens/pagamento retornam e finalizam|MANUAL|TEF/banco
+REI-02|Reinício|Recuperar itens|Produto 3 inserido|Fechar e reabrir|Pedido é gravado/recuperado|PARCIAL|Banco
+REI-03|Reinício|Recuperar tabela|Itens 1/2; tabela 3|Encerrar processo e reabrir|Tabela permanece|PARCIAL|Banco
+REI-04|Reinício|Recuperar preço diferenciado|Produto 36 com desconto|Encerrar e reabrir|Desconto permanece|PARCIAL|Banco
+REI-05|Reinício|Recuperar etapas|Mensagens de passos ativas|Interromper em cada passo|Recupera produto/pagamento/emissão conforme etapa|MANUAL|Processo/banco/NFC-e
+REI-06|Reinício|Recuperar vendedor|Vendedor e produto inseridos|Encerrar e reabrir; confirmar Sim|Vendedor permanece|PARCIAL|Banco
+SIN-01|Sincronia|Enviar NFC-e|Nota pendente|Rodar Sincronia NFC-e|Status atualiza conforme SEFAZ|BLOCKED|SEFAZ/Sincronia
+SIN-02|Sincronia|Contingência sem duplicidade|Nota na SEFAZ não local|Emitir contingência e rodar Sincronia|Autoriza sem duplicidade|BLOCKED|SEFAZ/Sincronia
+SIN-03|Sincronia|Vendas não enviadas|Nota pendente|Rodar Sincronia|Envia automaticamente|BLOCKED|Internet/Sincronia
+CFG-01|Configuração|Criar campos BD|Configuração local|Executar botão; reiniciar|Não há erro de campo|BLOCKED|Banco
+CFG-02|Configuração|Tabela Ind|Outro banco/configuração|Verificar tabela|Cria campos normalmente|BLOCKED|Banco
+CFG-03|Configuração|Leitura da loja SAT.INI|SAT.INI configurado|Mudar loja e abrir PDV|Usa loja definida|SIM|SAT.INI/banco
+PAR-01|Parâmetros|Quantidade máxima|Parâmetro definido|Exceder quantidade máxima|Dialog de erro próprio|SIM|Banco/parâmetro
+PAR-02|Parâmetros|Inverter grid|Parâmetro ativo|Abrir PDV|Grid é invertido|SIM|Banco/parâmetro
+PAR-03|Parâmetros|Gaveta só dinheiro|Parâmetro ativo|Venda dinheiro e outras formas|Gaveta abre somente em dinheiro|MANUAL|Gaveta/impressora
+CB-01|Cashback|Gerar cashback|Cashback configurado|Produto 1; cliente 74681956000132; F2/F3|Mensagem cashback gerado com sucesso|MANUAL|API cashback/internet
+CB-02|Cashback|Resgatar cashback|Cashback disponível|Cliente; Ctrl+R; selecionar R$ 0|10,Total R$ 0,90 e desconto R$ 0,10|MANUAL|API cashback/internet
+CB-03|Cashback|Sem rede consultar|Internet desligada|Cliente; Ctrl+R; Sim/Não|Mensagens e retries previstos aparecem|MANUAL|API cashback/internet
+CB-04|Cashback|Sem rede resgatar|Internet desligada|Cliente; F3; Sim/Não|Mensagens e retries previstos aparecem|MANUAL|API cashback/internet
+CB-05|Cashback|Retirar item com cashback|Itens 1/2 e cashback|Retirar item 2|Cashback é retirado|SIM|Banco/API
+CB-06|Cashback|Não resgatar antes de pagamento|Cashback escolhido|Ctrl+R; F3|Resgate só ocorre ao finalizar forma de pagamento|MANUAL|API cashback
+CB-07|Cashback|Cliente sem telefone|Cliente sem telefone|Produto 1; cliente; finalizar|Mensagem Cliente sem Telefone|PARCIAL|Banco/API

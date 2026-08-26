@@ -1,0 +1,38 @@
+# Credenciais e configuração local — NUNCA versionar
+.env
+*.env
+!.env.example
+
+# Ambiente virtual Python
+venv/
+env/
+.venv/
+
+# Cache e bytecode Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs de teste e inspeção
+*.log
+logs/
+inspecionar_output/
+
+# Screenshots/capturas usadas em debug de OCR
+*.png
+*.jpg
+!docs/**/*.png
+
+# Relatórios de teste
+.pytest_cache/
+reports/
+report.html
+allure-results/
+
+# Configuração de IDE
+.vscode/
+.idea/
+
+# Arquivos temporários do Windows
+Thumbs.db
+desktop.ini

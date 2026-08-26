@@ -1,0 +1,47 @@
+AUTOMACAO DO ROTEIRO SATPDV
+===========================
+
+Fonte funcional:
+  C:\Users\carollina.silva\Documents\PDV-Homologacao\SATPDV_241023B.docx
+
+Regra de execucao:
+  Os testes usam somente dados reais configurados no ambiente de homologacao.
+  Nenhum produto, cliente, voucher, preco ou credencial ficticia e criado.
+  Cenários sem dependencia configurada ficam SKIPPED ou MANUAL.
+
+Fluxo comum:
+  1. Iniciar C:\SAT Sistemas\SAT_HOMOLOGADAS\SATPDV.exe.
+  2. Localizar TFrmPDVCaixaFechado.
+  3. Abrir TFrmPassWord com foco, click_input e retry por ENTER/SPACE.
+  4. Preencher matricula e senha reais do .env.
+  5. Confirmar o aviso TFrmDlgInformacao, inclusive:
+       - Senha de Acesso antiga detectada!
+       - Matricula e/ou Senha de Acesso invalido(s)!
+  6. Continuar somente quando TFrmPDV estiver visivel e habilitado.
+
+Cenarios implementados e validados:
+  INI-02  Pausa do caixa       -> TFrmPDVPausa top-level
+  INI-03  Abrir ajuda          -> TFrmPDVAjuda top-level
+  INI-04  Sair da ajuda        -> ESC no modal ativo
+  INI-10  Inserir produto      -> tests/test_products.py (produto real)
+  INI-11  Remover produto      -> tests/test_products.py (produto real)
+
+Cenarios existentes:
+  INI-01  Login/abertura       -> fixture app + LoginPage
+  INI-05  ESC com venda        -> tests/test_initial.py (requer produto)
+  INI-06  ESC apos fluxo       -> tests/test_initial.py (requer produto)
+  INI-15  Produto inexistente  -> reservado para validacao de mensagem no ambiente
+
+Configuracao necessaria para habilitar produtos:
+  PDV_PRODUCT_CODE=<codigo existente no banco de homologacao>
+
+Comandos:
+  python -m pytest tests/test_initial.py -q
+  python -m pytest tests/test_poc.py -q
+  python -m pytest tests/test_products.py -q
+  python -m pytest -q
+
+Dependencias fora do escopo automatico:
+  TEF, PinPad, Pix, Moovpay, SEFAZ, certificado, impressora, gaveta,
+  balanca, alteracoes cadastrais, sincronizacao e cashback permanecem MANUAL,
+  BLOCKED ou PARCIAL conforme docs/test_matrix.csv.
