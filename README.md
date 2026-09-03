@@ -28,6 +28,7 @@ Variáveis essenciais:
 
 - `PDV_EXE_PATH`: caminho do `SATPDV.exe`.
 - `PDV_USER` e `PDV_PASSWORD`: credenciais de homologação.
+- `PDV_MANAGER_USER` e `PDV_MANAGER_PASSWORD`: opcionais para autorizações de gerente; se ausentes, usam as credenciais reais de `PDV_USER`/`PDV_PASSWORD`.
 - `PDV_LOGIN_REQUIRED`: `true` quando o executável exigir login.
 - `PDV_PRODUCT_CODE`: produto estável do banco de testes.
 - `PDV_ALLOW_REAL_RUN`: `true` somente quando o teste puder alterar o ambiente de homologação.
@@ -51,8 +52,8 @@ O projeto não copia nem modifica `SATPDV.exe`, `PDV.pas`, `PDV.dfm` ou `SAT.INI
 
 ## Referências analisadas
 
-- `C:\Users\carollina.silva\Documents\PDV-Homologacao\PDV.pas`
-- `C:\Users\carollina.silva\Documents\PDV-Homologacao\PDV.dfm`
-- `C:\Users\carollina.silva\Documents\PDV-Homologacao\SATPDV_241023B.docx`
-- `C:\Users\carollina.silva\Documents\PDV-Homologacao\SATPDV.exe`
-- `C:\Users\carollina.silva\Documents\PDV-Homologacao\SAT.INI` (somente inspeção de chaves; valores sensíveis não foram reproduzidos)
+- `D:\PDV-Homologacao\PDV.pas`
+- `D:\PDV-Homologacao\PDV.dfm`
+- `D:\PDV-Homologacao\SATPDV_241023B.docx`
+- `D:\SAT Sistemas\SAT_HOMOLOGADAS\SATPDV.exe`
+- `D:\PDV-Homologacao\SAT.INI` (somente inspeção de chaves; valores sensíveis não foram reproduzidos)

@@ -32,11 +32,14 @@ class TestConfig:
     exe_path: Path
     user: str
     password: str
+    manager_user: str
+    manager_password: str
     login_required: bool
     product_code: str
     invalid_product_code: str
     allow_real_run: bool
     backend: str
+    window_mode: str
     window_title_regex: str
     login_title_regex: str
     start_timeout: float
@@ -47,13 +50,22 @@ class TestConfig:
     def __repr__(self) -> str:
         values = []
         for field in fields(self):
-            value = "<redacted>" if field.name == "password" else getattr(self, field.name)
+            value = "<redacted>" if "password" in field.name else getattr(self, field.name)
             values.append(f"{field.name}={value!r}")
         return f"TestConfig({', '.join(values)})"
 
     @property
     def credentials_configured(self) -> bool:
         return not self.login_required or bool(self.user and self.password)
+
+    @property
+    def manager_credentials(self) -> tuple[str, str]:
+        """Credenciais de gerente vindas do .env, com fallback ao operador real."""
+        return self.manager_user, self.manager_password
+
+    @property
+    def manager_credentials_configured(self) -> bool:
+        return bool(self.manager_user and self.manager_password)
 
     @property
     def product_configured(self) -> bool:
@@ -91,11 +103,14 @@ def load_config(project_root: Path | None = None) -> TestConfig:
         exe_path=exe_path,
         user=str(value("PDV_USER", "user", "")),
         password=str(value("PDV_PASSWORD", "password", "")),
+        manager_user=str(value("PDV_MANAGER_USER", "manager_user", value("PDV_USER", "user", ""))),
+        manager_password=str(value("PDV_MANAGER_PASSWORD", "manager_password", value("PDV_PASSWORD", "password", ""))),
         login_required=_bool(value("PDV_LOGIN_REQUIRED", "login_required", True), True),
         product_code=str(value("PDV_PRODUCT_CODE", "product_code", "")),
         invalid_product_code=str(value("PDV_INVALID_PRODUCT_CODE", "invalid_product_code", "1234")),
         allow_real_run=_bool(value("PDV_ALLOW_REAL_RUN", "allow_real_run", False)),
         backend=str(value("PDV_BACKEND", "backend", "win32")),
+        window_mode=str(value("PDV_WINDOW_MODE", "window_mode", "fullscreen")).strip().lower(),
         window_title_regex=str(value("PDV_WINDOW_TITLE_REGEX", "window_title_regex", r"SAT\s*-\s*PDV|SATPDV|PDV")),
         login_title_regex=str(value("PDV_LOGIN_TITLE_REGEX", "login_title_regex", r"login|senha|matr[ií]cula|SAT")),
         start_timeout=float(value("PDV_START_TIMEOUT", "start_timeout", 30)),

@@ -1,11 +1,11 @@
 ID|Secao|Nome|PreCondicao|Acoes|ResultadoEsperado|Automatizavel|Dependencias
-INI-01|Testes iniciais|Abrir PDV com senha vazia|PDV fechado|Abrir e deixar senha em branco|Dialoga informa matrícula ou senha inválidos|PARCIAL|Login real
+INI-01|Testes iniciais|Abrir PDV com senha vazia|PDV fechado|Abrir e deixar senha em branco|Dialog informa matrícula ou senha inválidos|SIM|Login real
 INI-02|Testes iniciais|Pausa do caixa|PDV aberto|Alt+P|O caixa fica em pausa|SIM|Nenhuma
 INI-03|Testes iniciais|Abrir ajuda|PDV aberto|Ctrl+F1|Tela de ajuda apresenta comandos|SIM|Nenhuma
 INI-04|Testes iniciais|Sair da ajuda|Ajuda aberta|Esc|Sai do menu de ajuda|SIM|Nenhuma
 INI-05|Testes iniciais|Esc com venda aberta|Produto 5 inserido|Esc|Mensagem orienta F3 para finalizar ou F6 para cancelar|SIM|Banco
 INI-06|Testes iniciais|Esc após finalizar/cancelar|Fluxo anterior concluído|Finalizar ou cancelar e pressionar Esc|PDV é finalizado|SIM|Banco
-INI-07|Testes iniciais|Abrir gaveta|Impressora não fiscal configurada|F9 com usuário autorizado|Gaveta abre|MANUAL|Impressora/gaveta
+INI-07|Testes iniciais|Abrir gaveta|Impressora não fiscal configurada|F9 com usuário autorizado|Gaveta abre|SKIPPED|Impressora/gaveta; sensor físico; validação física fora do escopo
 INI-08|Testes iniciais|Consulta de preço|PDV aberto|F1 e produto 4|Produto mostra descrição e preço|SIM|Banco
 INI-09|Testes iniciais|Estoque em consulta|Consulta de preço aberta|Ctrl+E|Estoque do produto aparece|SIM|Banco
 INI-10|Testes iniciais|Inserir produto|Modo venda|Produto válido e Enter|Produto aparece no grid/memo|SIM|Banco
@@ -14,7 +14,7 @@ INI-12|Testes iniciais|Remover quantidade|Produto 1 com quantidade 2|-1*1|Uma un
 INI-13|Testes iniciais|Remover por índice|Produtos 3 e 5 com quantidades 3 e 4|-1* e -2|Uma unidade do item 2 é removida e total fica R$ 6,00|SIM|Banco
 INI-14|Testes iniciais|Remover item inexistente|Item 1 inserido|-5|Mensagem item inexistente ou já cancelado anteriormente|SIM|Banco
 INI-15|Testes iniciais|Produto inexistente|PDV aberto|Informar 1234 e código de barras inexistente|Dialog produto não encontrado|SIM|Banco
-INI-16|Testes iniciais|Verificação de licença|CNPJ incompatível|Tentar abrir pelo SAT e atalho|PDV não abre|BLOCKED|Banco/licença
+INI-16|Testes iniciais|Verificação de licença|CNPJ incompatível|Tentar abrir pelo SAT e atalho|PDV não abre|SKIPPED|Cadastro Empresa; SAT principal; banco/licença fora do escopo
 VEN-01|Venda|SiTEF com CPF no PinPad|SiTEF e NFC-e/ACBr ativos|F4; documento no PinPad; produtos 2 e 3; F3; Enter|Cupom finaliza com documento impresso|MANUAL|SiTEF/PinPad/impressora
 VEN-02|Venda|SiTEF CNPJ no PinPad|SiTEF e NFC-e/ACBr ativos|Ctrl+F5; documento no PinPad; produtos 3 e 4; F3; Enter|Cupom finaliza com documento impresso|MANUAL|SiTEF/PinPad/impressora
 VEN-03|Venda|CPF pelo teclado|PDV aberto|F5; CPF; produtos 5 e 6; F3; Enter|Cupom finaliza e cliente mantém cadastro|PARCIAL|Banco/impressora
@@ -30,7 +30,7 @@ VEN-12|Venda|Utilização de voucher|Voucher válido|Cliente; produto 1; voucher
 VEN-13|Venda|Voucher maior|Voucher maior que venda|Gerar voucher de R$ 5|00 e pagar produto 1,Sem troco; voucher integral; NFC-e normal|PARCIAL|Banco/NFC-e
 VEN-14|Venda|Voucher já usado|Voucher consumido|Informar código usado|Mensagem de voucher inválido e campo limpo|SIM|Banco
 VEN-15|Venda|Voucher menor|Valor da venda maior que voucher|Gerar e usar voucher menor|O cenário documenta comportamento de finalização integral; preservar evidência|PARCIAL|Banco
-VEN-16|Venda|Débito à vista|Cartão com chip|Transação de R$ 910|00,Transação confirmada|MANUAL|TEF/web
+VEN-16|Venda|Débito à vista|Cartão com chip|Transação de R$ 910|00,Transação confirmada|SKIPPED|TEF/web; cartão/pinpad fora do escopo
 VEN-17|Venda|Máximo de cartões|Limite informado pelo desenvolvedor|Venda R$ 700–799 com limite de cartões|Consegue realizar venda|BLOCKED|TEF/parâmetro
 VEN-18|Venda|50 itens|Produtos válidos|Inserir 50 itens|Venda é realizada|PARCIAL|Banco
 VEN-19|Venda|Alto valor|Produto 12/balança|Quantidade 99999999 e venda de R$ 99.999.999|Consegue realizar venda|MANUAL|Balança/banco

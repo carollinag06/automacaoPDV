@@ -6,6 +6,7 @@ Os fluxos abaixo podem ser executados contra o ambiente real de homologação qu
 
 - localizar o processo/janela e confirmar `SAT - PDV`;
 - login com credenciais vindas de `.env`/JSON;
+- autorizações de gerente devem reutilizar `TestConfig.manager_credentials`, carregado do `.env` sem registrar a senha;
 - pausa, ajuda e ESC;
 - inserir produto no `TEdit` real e validar o código no `TMemo` real;
 - remoção/cancelamento de venda quando o ambiente de teste permitir;
