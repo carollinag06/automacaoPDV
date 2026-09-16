@@ -7,13 +7,14 @@ from typing import Any
 
 import pytest
 
-from core.app import PdvApplication
+from core.app import PdvApplication, PdvCloseError
 from core.config import TestConfig, load_config
 from core.evidence import capture_failure, configure_logger, report_dir
 from core.test_results import (
     pytest_runtest_logreport,
     pytest_sessionfinish,
     set_dialog_context,
+    record_blocked_case,
 )
 from pages.base_page import UnknownDialogError
 from pages.login_page import LoginPage
@@ -26,6 +27,7 @@ class _AppPool:
     def __init__(self, config: TestConfig) -> None:
         self.config = config
         self.shared: PdvApplication | None = None
+        self.transient: PdvApplication | None = None
 
     def _start(self, login_required: bool) -> PdvApplication:
         application = PdvApplication(self.config)
@@ -51,40 +53,87 @@ class _AppPool:
         return application
 
     def acquire(self, fresh: bool = False, login_required: bool = True) -> tuple[PdvApplication, bool]:
+        if self.transient is not None and self.transient.close_error is not None:
+            raise self.transient.close_error
+        if self.shared is not None and self.shared.close_error is not None:
+            raise self.shared.close_error
         if fresh:
             self.close_shared()
-            return self._start(login_required), True
+            self.transient = self._start(login_required)
+            return self.transient, True
         if self.shared is None:
             self.shared = self._start(login_required)
         return self.shared, False
 
     def release_shared(self) -> None:
         if self.shared is not None:
+            if self.shared.close_error is not None:
+                raise self.shared.close_error
             try:
                 self.shared.reset_for_next_test(timeout=max(5.0, self.config.action_timeout))
-                main = self.shared._find_form("TFrmPDV", timeout=0.5)
-                if main is None or not self.shared._is_active_window(main):
+                # Depois de F6/cancelamento o VCL pode manter TFrmPDV
+                # desabilitado durante um repaint curto. Não confundir essa
+                # janela transitória com contaminação de estado; aguardar o
+                # mesmo estado pronto usado no setup.
+                deadline = time.monotonic() + max(1.5, self.config.action_timeout)
+                main = None
+                while time.monotonic() < deadline:
+                    candidate = self.shared._find_form("TFrmPDV", timeout=0.15)
+                    if candidate is not None and self.shared._is_active_window(candidate):
+                        main = candidate
+                        break
+                    time.sleep(0.1)
+                if main is None:
                     raise AssertionError(
                         "Reset entre testes nao restaurou TFrmPDV visivel e habilitado"
                     )
                 self.shared.maximize_window(main, self.config.window_mode)
                 self.shared.window = main
-            except Exception:
-                # A failed reset is not allowed to contaminate the next test.
-                # Discard this process; the next normal acquisition starts a
-                # fresh authenticated instance and the teardown log retains
-                # the state that caused the discard.
-                self.shared.close(reset=False)
-                self.shared = None
+            except Exception as exc:
+                # Não tentar fechar/forçar o processo quando o reset deixou um
+                # erro nativo visível ou TFrmPDV desabilitado. Nesse estado, um
+                # close() adicional pode gerar o erro "objeto Eureka já
+                # destruído" e perder a evidência da sequência original.
+                # Preservar a instância torna o próximo acquire explicitamente
+                # bloqueado, em vez de vazar estado corrompido silenciosamente.
+                try:
+                    diagnostics = self.shared.top_level_diagnostics()
+                    unsafe = any(
+                        item.get("class_name") in {"TFrmPDV", "#32770"}
+                        and item.get("visible")
+                        and (
+                            item.get("class_name") == "#32770"
+                            or not item.get("enabled")
+                        )
+                        for item in diagnostics
+                    )
+                except Exception:
+                    diagnostics = []
+                    unsafe = True
+                if unsafe:
+                    self.shared.close_error = PdvCloseError(
+                        "Reset entre testes deixou a instância em estado inseguro; "
+                        f"TFrmPDV/modal desabilitado. Causa original: {exc}. "
+                        f"Diagnóstico: {diagnostics}"
+                    )
+                    raise
+                try:
+                    self.shared.close(reset=False)
+                except Exception as close_exc:
+                    self.shared.close_error = PdvCloseError(
+                        f"Falha ao preservar/fechar instância após reset: {close_exc}"
+                    )
                 raise
 
     def close_shared(self) -> None:
         if self.shared is None:
             return
-        try:
-            self.shared.close(reset=False)
-        finally:
-            self.shared = None
+        if self.shared.close_error is not None:
+            # The original failure already has evidence. Preserve ownership
+            # and do not attempt a second cleanup during session teardown.
+            return
+        self.shared.close(reset=False)
+        self.shared = None
 
     def close(self) -> None:
         if self.config.close_after_test:
@@ -98,6 +147,73 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=None,
         help="Codigo do produto usado pelos cenarios genericos (1 a 33 por padrao).",
     )
+    parser.addoption(
+        "--pdv-par-qtde-maxima",
+        action="store",
+        default=None,
+        help="Valor positivo esperado de PDVQTDEMAXIMA para PAR-01.",
+    )
+    parser.addoption(
+        "--pdv-par-inverter-lista",
+        action="store",
+        default=None,
+        help="Valor esperado de PDVINVERTERLISTADEPRODUTOS para PAR-02 (S).",
+    )
+
+
+def _par_values(pytest_config, test_config: TestConfig) -> tuple[str | None, str | None]:
+    quantity = pytest_config.getoption("--pdv-par-qtde-maxima") or test_config.par_quantity_maxima
+    invert = pytest_config.getoption("--pdv-par-inverter-lista") or test_config.par_inverter_lista
+    return (str(quantity).strip() if quantity else None, str(invert).strip().upper() if invert else None)
+
+
+def _par_block_reason(scenario_id: str, quantity: str | None, invert: str | None) -> str | None:
+    if scenario_id == "PAR-01":
+        if not quantity:
+            return "PAR-01 bloqueado: PDV_PAR_QTDE_MAXIMA não foi definido no .env nem na CLI."
+        try:
+            if int(quantity) <= 0:
+                return "PAR-01 bloqueado: PDV_PAR_QTDE_MAXIMA deve ser um inteiro positivo."
+        except ValueError:
+            return "PAR-01 bloqueado: PDV_PAR_QTDE_MAXIMA deve ser numérico."
+    if scenario_id == "PAR-02":
+        # PAR-02 tem skip explícito no teste porque a alteração deve ser feita
+        # no módulo Parâmetros do Sistema, fora do escopo deste ambiente. Não
+        # converter a ausência de variável em BLOCKED: o caso nem deve
+        # materializar esta fixture quando o marker skip for aplicado.
+        return None
+    return None
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_collection_modifyitems(config, items):
+    """Bloqueios são inventariados antes das fixtures, sem virar SKIPPED.
+
+    trylast aplica o filtro depois de -k/-m. --collect-only continua exibindo
+    os casos para auditoria, sem criar resultado de execução.
+    """
+    if config.option.collectonly:
+        return
+    blocked, runnable = [], []
+    static_config = load_config(Path(str(config.rootpath)))
+    quantity, invert = _par_values(config, static_config)
+    for item in items:
+        par_marker = item.get_closest_marker("par_configuration")
+        if par_marker is not None:
+            scenario_id = str(par_marker.args[0])
+            reason = _par_block_reason(scenario_id, quantity, invert)
+            if reason:
+                item.add_marker(pytest.mark.blocked(reason=reason))
+        marker = item.get_closest_marker("blocked")
+        if marker is None:
+            runnable.append(item)
+            continue
+        reason = marker.kwargs.get("reason", "Pré-condição/seletor pendente; consultar o caso.")
+        record_blocked_case(item.nodeid, str(reason))
+        blocked.append(item)
+    if blocked:
+        items[:] = runnable
+        config.hook.pytest_deselected(items=blocked)
 
 
 @pytest.fixture(scope="session")
@@ -144,6 +260,24 @@ def manager_credentials(test_config: TestConfig) -> tuple[str, str]:
 
 
 @pytest.fixture
+def par_parameters(request: pytest.FixtureRequest, test_config: TestConfig) -> dict[str, int | str]:
+    """Resolve PAR parameters from CLI over .env, without querying the database."""
+    quantity, invert = _par_values(request.config, test_config)
+    scenario_id = request.node.get_closest_marker("par_configuration")
+    scenario = str(scenario_id.args[0]) if scenario_id else "PAR"
+    reason = _par_block_reason(scenario, quantity, invert)
+    if reason:
+        pytest.skip("BLOCKED: " + reason)
+    if scenario == "PAR-01":
+        assert quantity is not None
+        return {"quantity_maxima": int(quantity)}
+    if scenario == "PAR-02":
+        assert invert is not None
+        return {"inverter_lista": invert}
+    raise pytest.UsageError(f"Cenário de parâmetro não reconhecido: {scenario}")
+
+
+@pytest.fixture
 def evidence(request: pytest.FixtureRequest, test_config: TestConfig):
     name = request.node.name.replace("[", "_").replace("]", "_")
     directory = report_dir(test_config.report_root, name)
@@ -180,7 +314,9 @@ def app(request: pytest.FixtureRequest, test_config: TestConfig, evidence, app_p
     finally:
         if application is not None:
             logger.info(json.dumps({"phase": "teardown", "windows": application.top_level_diagnostics()}, ensure_ascii=False))
-            if transient:
+            if application.close_error is not None:
+                logger.error("Teardown suspenso: fechamento não confirmado; instância preservada.")
+            elif transient:
                 if test_config.close_after_test:
                     application.close(reset=False)
             elif not unknown_state:

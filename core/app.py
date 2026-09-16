@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import ctypes
+import json
 import re
 import subprocess
 import time
 import unicodedata
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from .config import TestConfig
@@ -34,11 +37,20 @@ class PdvApplicationError(RuntimeError):
     """Fatal error dialog reported by SATPDV itself."""
 
 
+class PdvCloseError(RuntimeError):
+    """Closing was not confirmed; preserve process and UI for inspection."""
+
+
+class PdvCloseBlockedError(PdvCloseError):
+    """The known active-sale warning rejected normal window closure."""
+
+
 @dataclass
 class PdvApplication:
     config: TestConfig
     process: Any | None = None
     window: Any | None = None
+    close_error: PdvCloseError | None = None
 
     @staticmethod
     def _observe_dialog(dialog: Any, context_label: str) -> None:
@@ -52,6 +64,8 @@ class PdvApplication:
             pass
 
     def start(self) -> Any:
+        if self.close_error is not None:
+            raise self.close_error
         if Application is None or Desktop is None:
             raise AutomationUnavailable("pywinauto não está instalado")
         if not self.config.exe_path.exists():
@@ -288,6 +302,20 @@ class PdvApplication:
 
     @staticmethod
     def _click_no(dialog: Any) -> bool:
+        def is_closed() -> bool:
+            try:
+                return not dialog.exists() or not dialog.is_visible()
+            except Exception:
+                return True
+
+        def wait_closed(timeout: float = 1.5) -> bool:
+            deadline = time.monotonic() + timeout
+            while time.monotonic() < deadline:
+                if is_closed():
+                    return True
+                time.sleep(0.1)
+            return is_closed()
+
         for class_name in ("TBitBtn", "TButton", "TSatSpeedButton"):
             for button in dialog.descendants(class_name=class_name):
                 try:
@@ -297,17 +325,39 @@ class PdvApplication:
                     if button.is_visible() and button.is_enabled() and caption == "nao":
                         try:
                             button.click_input()
-                            return True
                         except Exception:
                             try:
                                 button.click()
-                                return True
                             except Exception:
                                 try:
+                                    button.set_focus()
                                     press(button, "ENTER")
-                                    return True
                                 except Exception:
-                                    pass
+                                    continue
+                        if wait_closed():
+                            return True
+                        # A successful pywinauto call does not guarantee that
+                        # the VCL handler ran. Retry on the same known No
+                        # button and only report success after the modal is
+                        # actually gone.
+                        try:
+                            button.set_focus()
+                            press(button, "ENTER")
+                        except Exception:
+                            continue
+                        if wait_closed():
+                            return True
+                        # Política padrão: se o teste não pediu recuperação,
+                        # o modal conhecido deve ser recusado. ESC é o
+                        # cancelamento documentado e evita deixar o login
+                        # bloqueado quando o clique/Enter não acionou o VCL.
+                        try:
+                            dialog.set_focus()
+                            press(dialog, "ESC")
+                        except Exception:
+                            continue
+                        if wait_closed():
+                            return True
                 except Exception:
                     continue
         try:
@@ -586,13 +636,22 @@ class PdvApplication:
                 self._dismiss_information(information)
                 time.sleep(0.2)
                 continue
-            if main is not None and self._is_active_window(main) and password_active:
-                if self._dismiss_residual_password(password):
-                    time.sleep(0.2)
-                    continue
             if information is not None and password_active:
                 raise WindowNotFound("PDV exibiu TFrmDlgInformacao apos o login; PDV_READY nao foi alcancado")
-            if main is not None and not password_active:
+            # A build homologada pode deixar TFrmPassWord visível como janela
+            # residual, embora TFrmPDV já esteja habilitado e aceite interação.
+            # A capacidade real de interação do formulário principal é o sinal
+            # de PDV_READY; não condicione o sucesso ao desaparecimento visual
+            # desse residual conhecido.
+            if main is not None and self._is_active_window(main):
+                if password_active:
+                    try:
+                        self._dismiss_residual_password(password)
+                    except Exception:
+                        # O residual não é bloqueante quando o owner principal
+                        # já está visível/habilitado. Seu fechamento é apenas
+                        # limpeza visual e não pode invalidar a autenticação.
+                        pass
                 try:
                     if main.is_visible() and main.is_enabled():
                         self.maximize_window(main, self.config.window_mode)
@@ -704,31 +763,129 @@ class PdvApplication:
         except Exception:
             return []
 
-    def close(self, reset: bool = True) -> None:
+    def _close_windows(self) -> list[Any]:
+        """Never inspect another application's windows during close failure."""
+        if self.process is None:
+            return [self.window] if self.window is not None else []
+        try:
+            pid = self.process.process
+            if callable(pid):
+                pid = pid()
+            if not isinstance(pid, int) or pid <= 0:
+                return []
+        except Exception:
+            return []
+        return [window for window in self._windows() if _safe_process_id(window) == pid]
+
+    def _close_blocker(self) -> Any | None:
+        # PDV.pas: TFrmPDV.FormClose -> ExibirMsg -> EditMsg.Caption.
+        # The warning can be on the main form, not necessarily a separate modal.
+        for window in self._close_windows():
+            try:
+                if not window.is_visible():
+                    continue
+                text = unicodedata.normalize("NFKD", self._window_contents(window))
+                text = text.encode("ascii", "ignore").decode("ascii")
+                if re.search(
+                    r"tecle\s+F3\s+para\s+finalizar\s+a\s+venda\s+ou\s+F6\s+para\s+cancelar\s+a\s+venda",
+                    text, re.IGNORECASE,
+                ):
+                    return window
+            except Exception:
+                continue
+        return None
+
+    def _close_failure(self, blocker: Any | None = None) -> PdvCloseError:
+        known = blocker is not None
+        reason = (
+            "Fechamento bloqueado pelo SATPDV: Tecle F3 para finalizar a venda ou F6 para cancelar a venda."
+            if known else "Fechamento do SATPDV não confirmado; janela/processo permaneceu ativo ou inacessível."
+        )
+        error_type = PdvCloseBlockedError if known else PdvCloseError
+        # Latch BEFORE evidence: even a failed capture must never permit cleanup,
+        # another launch, blind ESC or silent process termination.
+        self.close_error = error_type(reason + " Processo preservado; nenhum ESC/kill será enviado.")
+        try:
+            from .test_results import record_dialog_observation
+
+            observations = [
+                record_dialog_observation(window, "close_blocked" if known else "close_unresolved")
+                for window in self._close_windows()
+            ]
+            output = self.config.report_root / datetime.now().strftime("%Y-%m-%d")
+            output.mkdir(parents=True, exist_ok=True)
+            stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            path = output / f"close_failure_{stamp}.json"
+            path.write_text(json.dumps({
+                "reason": reason, "known_warning": known,
+                "process_preserved": True, "dialogs": observations,
+            }, ensure_ascii=False, indent=2), encoding="utf-8")
+            self.close_error = error_type(f"{self.close_error} Evidência: {path}.")
+            # Reuse the existing read-only/redacted control-tree + screenshot
+            # collector; this does not classify a known warning as a new bug.
+            target = blocker if known else self.window
+            captured = capture_unknown_state(SimpleNamespace(
+                window=target, config=SimpleNamespace(report_root=output),
+            ), "close_blocked" if known else "close_unresolved")
+            self.close_error = error_type(
+                f"{self.close_error} Log: {captured.log_path}; screenshot: {captured.screenshot_path}."
+            )
+        except Exception as exc:
+            self.close_error = error_type(
+                f"{self.close_error} Captura incompleta ({type(exc).__name__}); inspecionar a tela preservada."
+            )
+        return self.close_error
+
+    def close(self, reset: bool = True, timeout: float = 5.0) -> None:
+        """Request normal closure only. Never turn it into an abrupt restart.
+
+        REI-02 remains pending reviewer decision. A timeout or active-sale
+        warning preserves handles and raises, including on subsequent calls.
+        """
+        if self.close_error is not None:
+            raise self.close_error
+        blocker = self._close_blocker()
+        if blocker is not None:
+            raise self._close_failure(blocker)
         if reset:
             self.reset_for_next_test()
-        window = self._find_form("TFrmPDV") or self._find_form("TFrmPDVCaixaFechado") or self.window
+        window = self.window
+        for candidate in self._close_windows():
+            try:
+                if candidate.class_name() in {"TFrmPDV", "TFrmPDVCaixaFechado"}:
+                    window = candidate
+                    if candidate.class_name() == "TFrmPDV":
+                        break
+            except Exception:
+                continue
         process = self.process
         if window is not None:
             try:
                 window.close()
             except Exception:
-                try:
-                    window.send_keystrokes("{ESC}")
-                except Exception:
-                    pass
+                # A close request may race with window destruction. Confirm
+                # process exit below; do not send another UI command.
+                pass
         if process is not None:
+            deadline = time.monotonic() + max(0.0, timeout)
+            while True:
+                try:
+                    process.wait_for_process_exit(timeout=min(0.2, max(0.0, deadline - time.monotonic())))
+                    break
+                except Exception:
+                    blocker = self._close_blocker()
+                    if blocker is not None:
+                        raise self._close_failure(blocker)
+                    if time.monotonic() >= deadline:
+                        raise self._close_failure()
+                    time.sleep(0.05)
+        elif window is not None:
             try:
-                process.wait_for_process_exit(timeout=5)
+                closed = not window.exists()
             except Exception:
-                try:
-                    process.kill()
-                except Exception:
-                    pass
-                try:
-                    process.wait_for_process_exit(timeout=2)
-                except Exception:
-                    pass
+                closed = False
+            if not closed:
+                raise self._close_failure(self._close_blocker())
         self.window = None
         self.process = None
 
@@ -740,6 +897,8 @@ class PdvApplication:
         dialog still remains untouched by the fixture's ``UnknownDialogError``
         path so its evidence can be inspected manually.
         """
+        if self.close_error is not None:
+            raise self.close_error
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             residuals = []
@@ -752,11 +911,13 @@ class PdvApplication:
                         "TFrmPassWord",
                         "TFrmInserirPgto",
                         "TFrmPDVProdutoNaoEncontrado",
+                        "TFrmQtdMax",
                         "TFrmPDVDlg",
                         "TppPrintPreview",
                         "TFrmPDVAjuda",
                         "TFrmPDVPausa",
                         "TDlgProd",
+                        "TDlgInserirSuprimentoOuSangria",
                     } or self._is_recovery_prompt(window) or self._is_application_error(window):
                         residuals.append(window)
                 except Exception:
@@ -785,6 +946,8 @@ class PdvApplication:
                         self._close_payment_dialog(dialog)
                     elif dialog.class_name() == "TFrmPDVProdutoNaoEncontrado":
                         self._dismiss_missing_product(dialog)
+                    elif dialog.class_name() == "TFrmQtdMax":
+                        self._close_quantity_limit_dialog(dialog)
                     elif dialog.class_name() == "TFrmPDVDlg":
                         if self._is_known_discount_dialog(dialog):
                             self._cancel_known_discount_dialog(dialog)
@@ -796,6 +959,8 @@ class PdvApplication:
                         self._close_print_preview(dialog)
                     elif dialog.class_name() == "TDlgProd":
                         self._close_product_dialog(dialog)
+                    elif dialog.class_name() == "TDlgInserirSuprimentoOuSangria":
+                        self._close_cash_movement_dialog(dialog)
                     else:
                         press(dialog, "ESC")
                 except Exception:
@@ -872,6 +1037,37 @@ class PdvApplication:
                 pass
 
     @staticmethod
+    def _close_quantity_limit_dialog(dialog: Any) -> None:
+        """Close the mapped TFrmQtdMax using its documented F2/Space keys."""
+        try:
+            PdvApplication._observe_dialog(dialog, "before_reset_close_quantity_limit")
+        except Exception:
+            pass
+        try:
+            dialog.click_input()
+        except Exception:
+            try:
+                dialog.set_focus()
+            except Exception:
+                pass
+        try:
+            dialog.send_keystrokes("{F2}")
+            time.sleep(0.25)
+        except Exception:
+            try:
+                press(dialog, "F2")
+            except Exception:
+                pass
+        try:
+            if dialog.is_visible() and dialog.is_enabled():
+                dialog.send_keystrokes(" ")
+        except Exception:
+            try:
+                press(dialog, "SPACE")
+            except Exception:
+                pass
+
+    @staticmethod
     def _dismiss_missing_product(dialog: Any) -> None:
         """Use the documented F2/Space controls of the known warning form."""
         try:
@@ -933,6 +1129,47 @@ class PdvApplication:
                     return
             except Exception:
                 continue
+
+    @staticmethod
+    def _close_cash_movement_dialog(dialog: Any) -> None:
+        """Close the known Ctrl+F2/Ctrl+F3 entry form during shared reset.
+
+        Runtime class: ``TDlgInserirSuprimentoOuSangria``. Its
+        ``TSatSpeedButton`` caption ``Esc - Cancelar`` is the documented and
+        safe close action. This is only cleanup of a form left on screen; an
+        already confirmed movement is not reversed here.
+        """
+        try:
+            from .test_results import record_dialog_observation
+
+            record_dialog_observation(dialog, "before_reset_close_cash_movement")
+        except Exception:
+            pass
+        try:
+            dialog.set_focus()
+            press(dialog, "ESC")
+            time.sleep(0.25)
+            if not dialog.is_visible():
+                return
+            for button in dialog.descendants(class_name="TSatSpeedButton"):
+                caption = unicodedata.normalize(
+                    "NFKD", button.window_text() or ""
+                ).encode("ascii", "ignore").decode("ascii").strip("& ").casefold()
+                if caption == "esc - cancelar" and button.is_visible() and button.is_enabled():
+                    button.click_input()
+                    time.sleep(0.25)
+                    if not dialog.is_visible():
+                        return
+                    return
+        except Exception:
+            pass
+        try:
+            press(dialog, "ESC")
+        except Exception:
+            try:
+                dialog.close()
+            except Exception:
+                pass
         try:
             dialog.close()
         except Exception:

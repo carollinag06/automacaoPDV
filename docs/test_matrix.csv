@@ -44,10 +44,10 @@ VEN-26|Venda|Código de barras XML|NFC-e habilitada|Inserir 7894900011531 e emit
 VEN-27|Venda|Código automático|Produto configurado|Inserir 0000000000024|Produto entra no grid|SIM|Banco
 VEN-28|Venda|Item de balança|Produto 25 configurado|Inserir produto|Permite informar peso|MANUAL|Balança/VSPE
 VEN-29|Venda|Peso manual|Produto 12 configurado|Inserir; informar peso; confirmar|Quantidade digitada é inserida|PARCIAL|Balança/parâmetro
-VEN-30|Venda|Cancelar peso|Produto 12 configurado|Iniciar peso e cancelar|Mensagem de operação cancelada|MANUAL|Balança
+VEN-30|Venda|Convênio acima do limite|Cliente 59192828000|Venda acima de R$ 100 no convênio|Mensagem de limite e permite nova forma|PARCIAL|Banco/cadastro
 VEN-31|Venda|NCM inválido|Produto sem figura fiscal|Inserir e emitir|Finaliza em contingência sem aviso indevido|PARCIAL|NFC-e/certificado
 VEN-32|Venda|CSOSN|Configuração fiscal existente|Consultar lojas/figura/produto|Precedência conforme roteiro|BLOCKED|Banco
-VEN-33|Venda|Convênio acima do limite|Cliente 59192828000|Venda acima de R$ 100 no convênio|Mensagem de limite e permite nova forma|PARCIAL|Banco/cadastro
+VEN-33|Venda|Teste com Pix Inter|Configuração sandbox Pix Inter|F3; selecionar Pix Inter; concluir transação|Pagamento Pix Inter aprovado|SKIPPED|Pix/Internet/credenciais externas fora do escopo
 VEN-34|Venda|Quantidade fracionada|Produto 46|Informar 0|12345*,Armazena no máximo 3 casas: 0,123|SIM|Banco
 VEN-35|Venda|Convênio pré-selecionado|Produto 2|F3 e selecionar Convênio|Convênio pré-selecionado e navegação sem bloqueio|SIM|Banco
 VEN-36|Venda|Cancelar CPF de convênio|Sem convênio cadastrado|Convênio; Enter; Esc; F3 novamente|Retorna ao fluxo sem erro|SIM|Banco

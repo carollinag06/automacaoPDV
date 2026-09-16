@@ -502,6 +502,20 @@ class LoginPage:
             record_dialog_observation(dialog, "before_dismiss_login_recovery")
         except Exception:
             pass
+        def closed() -> bool:
+            try:
+                return not dialog.exists() or not dialog.is_visible()
+            except (InvalidWindowHandle, ElementNotFoundError):
+                return True
+
+        def wait_closed(timeout: float = 1.5) -> bool:
+            deadline = time.monotonic() + timeout
+            while time.monotonic() < deadline:
+                if closed():
+                    return True
+                time.sleep(0.1)
+            return closed()
+
         for class_name in ("TBitBtn", "TButton", "TSatSpeedButton"):
             try:
                 buttons = dialog.descendants(class_name=class_name)
@@ -517,18 +531,60 @@ class LoginPage:
                     try:
                         button.click_input()
                     except Exception:
-                        button.click()
-                    return
+                        try:
+                            button.click()
+                        except Exception:
+                            button.set_focus()
+                            press(button, "ENTER")
+                    if wait_closed():
+                        return
+                    # click_input/click can report success while the VCL
+                    # handler is still pending. Retry the same known No
+                    # button and require the modal to disappear.
+                    try:
+                        button.set_focus()
+                        press(button, "ENTER")
+                    except (InvalidWindowHandle, ElementNotFoundError):
+                        if closed():
+                            return
+                        continue
+                    if wait_closed():
+                        return
+                    try:
+                        # O fluxo normal não recupera a venda. Se o botão
+                        # Não não for processado, ESC é o cancelamento seguro
+                        # do mesmo modal conhecido.
+                        dialog.set_focus()
+                        press(dialog, "ESC")
+                    except (InvalidWindowHandle, ElementNotFoundError):
+                        if closed():
+                            return
+                        continue
+                    if wait_closed():
+                        return
                 except (InvalidWindowHandle, ElementNotFoundError):
                     continue
-        raise AssertionError("Modal de recuperacao nao expos um botao Nao seguro")
+        raise AssertionError(
+            "Modal de recuperacao nao foi fechado pelo botao Nao; "
+            "o clique nao foi considerado concluido sem desaparecer a janela"
+        )
 
     def _dismiss_warning(self, dialog: Any) -> None:
         self._observe_dialog(dialog, "before_dismiss_login_warning")
         for _ in range(3):
             self._wait_for_stable_window(dialog, timeout=0.8)
             try:
-                if not dialog.exists():
+                # ``DialogWrapper`` from the configured pywinauto runtime may
+                # not expose ``exists()``. Use it when available and fall back
+                # to the VCL wrapper's visibility check; both paths preserve
+                # the invalid-handle fallback below.
+                exists_method = getattr(dialog, "exists", None)
+                exists = (
+                    bool(exists_method())
+                    if callable(exists_method)
+                    else bool(dialog.is_visible())
+                )
+                if not exists:
                     self._press_enter_fallback(dialog)
                     return
                 buttons = []
@@ -563,7 +619,7 @@ class LoginPage:
                         pass
             try:
                 press(dialog, "ENTER")
-            except (InvalidWindowHandle, ElementNotFoundError):
+            except Exception:
                 self._press_enter_fallback(dialog)
             time.sleep(0.25)
             if not self._is_active(dialog):
@@ -573,10 +629,17 @@ class LoginPage:
     def _press_enter_fallback(self, dialog: Any) -> None:
         for target in (dialog, self.root):
             try:
-                press(target, "ENTER")
+                # Envio direto ao HWND não depende de desktop interativo nem
+                # de SetForegroundWindow; isso permite concluir o aviso de
+                # senha em execuções desacopladas da área de trabalho.
+                target.send_keystrokes("{ENTER}")
                 return
-            except (InvalidWindowHandle, ElementNotFoundError):
-                continue
+            except Exception:
+                try:
+                    press(target, "ENTER")
+                    return
+                except Exception:
+                    continue
 
     def _find_password_dialog(self) -> Any | None:
         dialog = self._find_window("TFrmPassWord")

@@ -37,6 +37,8 @@ class TestConfig:
     login_required: bool
     product_code: str
     invalid_product_code: str
+    par_quantity_maxima: str | None
+    par_inverter_lista: str | None
     allow_real_run: bool
     backend: str
     window_mode: str
@@ -108,6 +110,12 @@ def load_config(project_root: Path | None = None) -> TestConfig:
         login_required=_bool(value("PDV_LOGIN_REQUIRED", "login_required", True), True),
         product_code=str(value("PDV_PRODUCT_CODE", "product_code", "")),
         invalid_product_code=str(value("PDV_INVALID_PRODUCT_CODE", "invalid_product_code", "1234")),
+        par_quantity_maxima=(
+            str(value("PDV_PAR_QTDE_MAXIMA", "par_quantity_maxima", "")).strip() or None
+        ),
+        par_inverter_lista=(
+            str(value("PDV_PAR_INVERTER_LISTA", "par_inverter_lista", "")).strip().upper() or None
+        ),
         allow_real_run=_bool(value("PDV_ALLOW_REAL_RUN", "allow_real_run", False)),
         backend=str(value("PDV_BACKEND", "backend", "win32")),
         window_mode=str(value("PDV_WINDOW_MODE", "window_mode", "fullscreen")).strip().lower(),

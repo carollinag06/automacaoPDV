@@ -13,9 +13,19 @@ GERENCIA = {
 
 CLIENTES = {
     "BLOQUEADO": "06307307170",
+    # CPF valido matematicamente, reservado ao fluxo de cliente nao cadastrado
+    # (CLI-05); nao deve ser confundido com o cadastro bloqueado acima.
+    # CPF válido matematicamente, reservado ao fluxo de cliente não cadastrado
+    # (CLI-05). A ausência no cadastro deve ser confirmada pelo comportamento
+    # real do ambiente; não confundir com CLIENTES["BLOQUEADO"].
+    "NAO_CADASTRADO": "84613297087",
     "CNPJ": "08876956000163",
     "GOIAS": "01991902166",
     "DF": "22249252041",
+    # Massa prevista no roteiro para voucher (VEN-11..VEN-15).
+    "VOUCHER": "53960629168",
+    # Cliente/funcionario de convenio informado pelo QA para VEN-30/VEN-35.
+    "CONVENIO": "59192828000",
 }
 
 CUPONS = {
